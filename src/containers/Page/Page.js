@@ -1,27 +1,62 @@
-import React, { Component } from 'react'
+/**
+ * # Page Container
+ */
+
+import React, { Component, PropTypes } from 'react'
 import { connectWpPost } from 'kasia/connect'
-import { Page } from 'kasia/types'
 import { push } from 'react-router-redux'
+import ContentTypes from 'kasia/types'
+import Helmet from 'react-helmet'
 
-import './Page.scss'
+import { Loading } from '../../components'
+import parse from '../../helpers/htmlParser'
 
-@connectWpPost(Page, (props) => props.params.slug)
-export default class extends Component {
+import styles from './Page.scss'
+
+class Page extends Component {
+  static propTypes = {
+    params: PropTypes.object
+  }
+
   render () {
-    const { query, page } = this.props.kasia
+    const { page } = this.props.kasia
 
-    const inner = query.complete && page
-      ? <span>{page.title}</span>
-      : <span>Loading...</span>
+    let children = <Loading />
 
-    return <div className="Page">{inner}</div>
+    if (page) {
+      children = (
+        <div>
+          <Helmet title={page.title} />
+          <h2>{page.title}</h2>
+          {parse(page.content)}
+        </div>
+      )
+    }
+
+    return (
+      <div className={styles.Page}>
+        {children}
+      </div>
+    )
+  }
+
+  componentWillMount () {
+    this.redirectWithoutPage(this.props)
   }
 
   componentWillReceiveProps (nextProps) {
-    const { query, page } = nextProps.kasia
+    this.redirectWithoutPage(nextProps)
+  }
+
+  redirectWithoutPage (props) {
+    const { query, page } = props.kasia
 
     if (query.complete && !page) {
       this.props.dispatch(push('/not-found'))
     }
   }
+}
+
+export default function (identifier) {
+  return connectWpPost(ContentTypes.Page, identifier)(Page)
 }

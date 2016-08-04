@@ -1,3 +1,7 @@
+/**
+ * # Webpack Dev Server
+ */
+
 var Express = require('express')
 var webpack = require('webpack')
 
@@ -29,6 +33,6 @@ app.listen(port, function onAppListening(err) {
   if (err) {
     console.error(err)
   } else {
-    console.info('==> 🚧  Webpack development server listening on port %s', port)
+    console.info('==> Webpack development server listening on port %s', port)
   }
 })

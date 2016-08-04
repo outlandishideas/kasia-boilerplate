@@ -1,64 +1,73 @@
+/**
+ * # Webpack Developer Config
+ */
+
 require('babel-polyfill')
 
-// Webpack config for development
 var fs = require('fs')
 var path = require('path')
 var webpack = require('webpack')
+var WebpackIsomorphicToolsPlugin = require('webpack-isomorphic-tools/plugin')
+
+var iso = require('./webpack-isomorphic-tools')
 
 var host = (process.env.HOST || 'localhost')
 var port = (+process.env.PORT + 1) || 3001
 
-// https://github.com/halt-hammerzeit/webpack-isomorphic-tools
-var WebpackIsomorphicToolsPlugin = require('webpack-isomorphic-tools/plugin')
-var webpackIsomorphicToolsPlugin = new WebpackIsomorphicToolsPlugin(require('./webpack-isomorphic-tools'))
+var webpackIsomorphicToolsPlugin = new WebpackIsomorphicToolsPlugin(iso)
 
-var babelrc = fs.readFileSync('./.babelrc')
-var babelrcObject = {}
+//---
+// ## Configure Babel
+// ---
 
 try {
-  babelrcObject = JSON.parse(babelrc)
+  var babelConfig = JSON.parse(fs.readFileSync('.babelrc'))
 } catch (err) {
   console.error('==>     ERROR: Error parsing your .babelrc.')
   console.error(err)
 }
 
-var babelrcObjectDevelopment = babelrcObject.env && babelrcObject.env.development || {}
+var babelDevConfig = babelConfig.env && babelConfig.env.development || {}
+var babelPlugins = [].concat(babelConfig.plugins, babelDevConfig.plugins)
 
-// merge global and dev-only plugins
-var combinedPlugins = babelrcObject.plugins || []
-combinedPlugins = combinedPlugins.concat(babelrcObjectDevelopment.plugins)
+;(function insertReactHmrTransformPlugin () {
+  var plugin = null
 
-var babelLoaderQuery = Object.assign({}, babelrcObjectDevelopment, babelrcObject, {plugins: combinedPlugins})
+  for (var i = 0, len = babelPlugins.length; i < len; i++) {
+    plugin = babelPlugins[i]
+
+    if (plugin[0] && plugin[0] === 'react-transform') {
+      break
+    }
+  }
+
+  plugin[1].transforms.push({
+    transform: 'react-transform-hmr',
+    imports: ['react'],
+    locals: ['module']
+  })
+
+  return plugin
+})()
+
+var babelLoaderQuery = Object.assign({}, babelConfig, babelDevConfig, {
+  plugins: babelPlugins
+})
+
 delete babelLoaderQuery.env
 
-// Since we use .babelrc for client and server, and we don't want HMR enabled on the server, we have to add
-// the babel plugin react-transform-hmr manually here.
+//---
+// ## Configure Webpack
+//---
 
-// make sure react-transform is enabled
-babelLoaderQuery.plugins = babelLoaderQuery.plugins || []
-var reactTransform = null
-for (var i = 0; i < babelLoaderQuery.plugins.length; ++i) {
-  var plugin = babelLoaderQuery.plugins[i]
-  if (Array.isArray(plugin) && plugin[0] === 'react-transform') {
-    reactTransform = plugin
-  }
-}
-
-if (!reactTransform) {
-  reactTransform = ['react-transform', {transforms: []}]
-  babelLoaderQuery.plugins.push(reactTransform)
-}
-
-if (!reactTransform[1] || !reactTransform[1].transforms) {
-  reactTransform[1] = Object.assign({}, reactTransform[1], {transforms: []})
-}
-
-// make sure react-transform-hmr is enabled
-reactTransform[1].transforms.push({
-  transform: 'react-transform-hmr',
-  imports: ['react'],
-  locals: ['module']
-})
+var scssExtract = 'style' +
+  '!css' +
+  '?modules' +
+  '&importLoaders=2' +
+  '&sourceMap' +
+  '&localIdentName=[local]___[hash:base64:5]' +
+  '!autoprefixer?browsers=last 2 version' +
+  '!sass?outputStyle=expanded&sourceMap'
 
 module.exports = {
   devtool: 'inline-source-map',
@@ -66,8 +75,7 @@ module.exports = {
   entry: {
     main: [
       'webpack-hot-middleware/client?path=http://' + host + ':' + port + '/__webpack_hmr',
-      'bootstrap-sass!./src/theme/bootstrap.config.js',
-      'font-awesome-webpack!./src/theme/font-awesome.config.js',
+      './src/theme/global.scss',
       './src/client.js'
     ]
   },
@@ -81,7 +89,7 @@ module.exports = {
     loaders: [
       { test: /\.jsx?$/, exclude: /node_modules/, loaders: ['babel?' + JSON.stringify(babelLoaderQuery)]},
       { test: /\.json$/, loader: 'json-loader' },
-      { test: /\.scss$/, loader: 'style!css?modules&importLoaders=2&sourceMap&localIdentName=[local]___[hash:base64:5]!autoprefixer?browsers=last 2 version!sass?outputStyle=expanded&sourceMap' },
+      { test: /\.scss$/, loader: scssExtract },
       { test: /\.woff(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff" },
       { test: /\.woff2(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/font-woff" },
       { test: /\.ttf(\?v=\d+\.\d+\.\d+)?$/, loader: "url?limit=10000&mimetype=application/octet-stream" },
@@ -96,10 +104,14 @@ module.exports = {
       'src',
       'node_modules'
     ],
-    extensions: ['', '.json', '.js', '.jsx']
+    extensions: [
+      '',
+      '.json',
+      '.js',
+      '.jsx'
+    ]
   },
   plugins: [
-    // hot reload
     new webpack.HotModuleReplacementPlugin(),
     new webpack.IgnorePlugin(/webpack-stats\.json$/),
     new webpack.DefinePlugin({

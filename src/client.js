@@ -1,63 +1,24 @@
-/* global __DEVTOOLS__:false */
+/**
+ * # Client
+ */
 
 import 'babel-polyfill'
 
 import React from 'react'
-import ReactDOM from 'react-dom'
 import useScroll from 'scroll-behavior/lib/useStandardScroll'
-import { Provider } from 'react-redux'
-import { Router, browserHistory } from 'react-router'
+import ReactDOM from 'react-dom'
+import { browserHistory as _browserHistory } from 'react-router'
 import { syncHistoryWithStore } from 'react-router-redux'
 
-import createStore from './redux/create'
+import { Root } from './containers'
 import routes from './routes'
+import createStore from './store/create'
 
-const _browserHistory = useScroll(() => browserHistory)()
-const store = createStore(_browserHistory, window.__data)
-const history = syncHistoryWithStore(_browserHistory, store)
-const contentElem = document.getElementById('content')
+const browserHistory = useScroll(() => _browserHistory)()
+const store = createStore(browserHistory, window.__STATE__ || {})
+const history = syncHistoryWithStore(browserHistory, store)
 
-const component = (
-  <Router history={history}>
-    {routes}
-  </Router>
+ReactDOM.render(
+  <Root store={store} history={history} routes={routes} type='client' />,
+  document.getElementById('container')
 )
-
-if (__DEVTOOLS__ && !window.devToolsExtension) {
-  const DevTools = require('./containers/DevTools/DevTools')
-
-  const root = (
-    <Provider store={store} key='provider'>
-      <div>
-        {component}
-        <DevTools />
-      </div>
-    </Provider>
-  )
-
-  ReactDOM.render(root, contentElem)
-} else {
-  const root = (
-    <Provider store={store} key='provider'>
-      {component}
-    </Provider>
-  )
-
-  ReactDOM.render(root, contentElem)
-}
-
-if (process.env.NODE_ENV !== 'production') {
-  window.React = React // Enable debugger
-
-  if (
-    !contentElem ||
-    !contentElem.firstChild ||
-    !contentElem.firstChild.attributes ||
-    !contentElem.firstChild.attributes['data-react-checksum']
-  ) {
-    console.error(
-      'Server-side React render was discarded. ' +
-      'Make sure that your initial render does not contain any client-side code.'
-    )
-  }
-}

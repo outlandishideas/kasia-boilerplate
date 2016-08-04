@@ -1,11 +1,14 @@
-/* global __DEVELOPMENT__:false, __DISABLE_SSR__:false, webpackIsomorphicTools:false */
+/* global global:false, __dirname:false, __DEVELOPMENT__:false */
+/**
+ * # Server
+ */
 
-import { createMemoryHistory } from 'history';
-import { match, useRouterHistory, RouterContext } from 'react-router';
-import { Provider } from 'react-redux'
-import { syncHistoryWithStore } from 'react-router-redux';
+import { createMemoryHistory } from 'history'
+import { match, useRouterHistory } from 'react-router'
+import { syncHistoryWithStore } from 'react-router-redux'
 import path from 'path'
 import http from 'http'
+import pify from 'pify'
 import React from 'react'
 import Express from 'express'
 import favicon from 'serve-favicon'
@@ -13,114 +16,103 @@ import compression from 'compression'
 import PrettyError from 'pretty-error'
 import ReactDOM from 'react-dom/server'
 
+import {
+  makePreloaderSaga as makeWpPreloaderSaga
+} from 'kasia/util'
+
+import {
+  fetchThemeLocation,
+  makePreloader as makeWpMenusPreloaderSaga
+} from 'kasia-plugin-wp-api-menus'
+
+import { Root } from './containers'
+import { Error } from './components'
+import { Html, runSagas } from './helpers'
+import { createStore, WP } from './store'
 import config from './config'
 import routes from './routes'
-import Html from './helpers/Html'
-import waitAll from './helpers/waitAll'
-import createStore from './redux/create'
-import getPreloaders from './helpers/getPreloaders'
 
 if (!config.port) {
-  console.error('==>     ERROR: No port environment variable')
-  console.error('==>     ERROR: Exiting...')
+  console.error('==> ERROR: No port environment variable')
+  console.error('==> ERROR: Exiting...')
   process.exit()
 }
 
-const pretty = new PrettyError()
 const app = new Express()
+const pretty = new PrettyError()
 const server = new http.Server(app)
 
-// Allow configuration to complete before starting the server
-setTimeout(function run () {
-  server.listen(config.port, (err) => {
-    if (err) {
-      console.error(err)
-      return
-    }
-
-    console.info('----')
-    console.info('==> %s started at http://%s:%s', config.app.title, config.host, config.port)
-  })
-})
-
-function hydrateOnClient (res, store) {
-  res.send(
-    '<!doctype html>\n' +
-    ReactDOM.renderToString(
-      <Html assets={webpackIsomorphicTools.assets()} store={store} />
-    )
-  )
-}
-
 app.use(compression())
-app.use(favicon(path.join(__dirname, '..', 'static', 'favicon.ico')))
+app.use(favicon(path.join(__dirname, '../static/favicon.ico')))
 app.use(Express.static(path.join(__dirname, '..', 'static')))
 
 app.use((req, res) => {
   if (__DEVELOPMENT__) {
-    // Do not cache webpack stats: the script file would change since
-    // hot module replacement is enabled in the development env
-    webpackIsomorphicTools.refresh()
+    global.webpackIsomorphicTools.refresh()
   }
 
-  const history = useRouterHistory(createMemoryHistory)({});
-  const store = createStore(history, {});
+  const location = req.originalUrl
+  const history = useRouterHistory(createMemoryHistory)({})
+  const store = createStore(history, {})
 
-  syncHistoryWithStore(history, store);
-  history.replace(req.originalUrl);
+  syncHistoryWithStore(history, store)
+  history.replace(req.originalUrl)
 
-  if (__DISABLE_SSR__) {
-    hydrateOnClient(res, store)
-    return
-  }
+  pify(match, { multiArgs: true })({ history, routes, location })
+    .then((result) => {
+      const [ redirectLocation, renderProps ] = result
 
-  match({
-    history,
-    routes,
-    location: req.originalUrl
-  }, (error, redirectLocation, renderProps) => {
-    if (redirectLocation) {
-      res.redirect(redirectLocation.pathname + redirectLocation.search)
-      return
-    }
+      if (redirectLocation) {
+        res.redirect(redirectLocation.pathname + redirectLocation.search)
+        return
+      }
 
-    if (error) {
-      console.error('ROUTER ERROR:', pretty.render(error))
-      res.status(500)
-      hydrateOnClient(res, store)
-      return
-    }
+      if (!renderProps) {
+        res.status(404).send('Not found')
+        return
+      }
 
-    if (renderProps) {
-      const preloaders = getPreloaders(renderProps.components)
-      const operations = preloaders.map(make => make()(renderProps))
+      const preloaders = [
+        makeWpPreloaderSaga(renderProps.components, renderProps),
+        makeWpMenusPreloaderSaga(WP, fetchThemeLocation('primary'))
+      ]
 
-      const render = () => {
-        const component = (
-          <Provider store={store}>
-            <RouterContext {...renderProps} />
-          </Provider>
-        )
+      return runSagas(store, preloaders).then(() => {
+        const rootProps = { renderProps, history, routes, store }
+        const root = <Root {...rootProps} type='server' />
 
         global.navigator = { userAgent: req.headers['user-agent'] }
 
-        res.send(
-          '<!doctype html>\n' +
-          ReactDOM.renderToString(
-            <Html assets={webpackIsomorphicTools.assets()}
-                  component={component}
-                  store={store} />
-          )
+        const document = ReactDOM.renderToString(
+          <Html
+            assets={global.webpackIsomorphicTools.assets()}
+            component={root}
+            store={store} />
         )
-      }
 
-      store
-        .runSaga(waitAll(operations))
-        .done.then(render)
+        res.send('<!doctype html>\n' + document)
+      })
+    })
+    .catch((error) => {
+      console.error('==> ROUTER ERROR:', pretty.render(error))
 
-      return
-    }
+      const document = ReactDOM.renderToString(
+        <Html
+          noscript
+          assets={global.webpackIsomorphicTools.assets()}
+          component={<Error code={500} />}
+          store={store} />
+      )
 
-    res.status(404).send('Not found')
-  })
+      res.status(500).send('<!doctype html>\n' + document)
+    })
+})
+
+server.listen(config.port, (err) => {
+  if (err) {
+    console.error(err)
+    return
+  }
+
+  console.info('==> %s started at http://%s:%s', config.app.title, config.host, config.port)
 })

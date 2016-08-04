@@ -1,13 +1,31 @@
+/**
+ * # App Container
+ */
+
 import React, { Component } from 'react'
+import Helmet from 'react-helmet'
 
-import './App.scss'
+import { Header } from '../../components'
+import { PrimaryMenu } from '../index'
+import config from '../../config'
 
-export default class extends Component {
+import styles from './App.scss'
+
+export default class App extends Component {
   render () {
+    const { pathname } = this.props.location
+
     return (
-      <div className="App">
-        <h1>Kasia Boilerplate</h1>
-        {this.props.children}
+      <div className={styles.App}>
+        <Helmet {...config.app.head}/>
+
+        <Header />
+
+        <PrimaryMenu activePathName={pathname} />
+
+        <div className={styles.content}>
+          {this.props.children}
+        </div>
       </div>
     )
   }
