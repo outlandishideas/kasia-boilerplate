@@ -55,9 +55,16 @@ As a developer:
 
 - `npm run dev`
 
+By default the web server is at localhost:3000
+
+<p>______</p>
+
 In production:
 
+- `npm run build`
 - `npm start`
+
+By default the web server is at localhost:8080
 
 ## Contributing
 
