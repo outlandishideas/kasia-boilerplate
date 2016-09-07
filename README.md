@@ -39,8 +39,8 @@ We aim to release an Ansible script which will do all of this for you, but for n
 - Install wordpress at `localhost/wordpress` (or somewhere else; change accordingly in `src/config.js`)
 - Install and enable these plugins: [`WP API REST JSON API v2`](https://en-gb.wordpress.org/plugins/rest-api/), [`WP API MENUS`](https://en-gb.wordpress.org/plugins/wp-api-menus/)
 - Create two pages with slugs `homepage` and `posts`
-- Create a menu (Appearance > Menu) called `'primary'` containing the two pages you just created
-- Create a some Posts
+- Create a menu (Appearance > Menus) called `'primary'` containing the two pages you just created
+- Create some Posts
 
 ### Get the application
 
@@ -71,4 +71,4 @@ If you're not sure how to contribute, check out Kent C. Dodds'
 
 ## Author & License
 
-`kasia` was created by [Outlandish](https://twitter.com/outlandish) and is released under the MIT license.
+`kasia-boilerplate` was created by [Outlandish](https://twitter.com/outlandish) and is released under the MIT license.
