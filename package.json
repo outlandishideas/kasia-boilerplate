@@ -1,7 +1,7 @@
 {
   "name": "kasia-boilerplate",
   "description": "A universal application boilerplate with Kasia",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "main": "bin/www",
   "scripts": {
     "start": "concurrent --kill-others \"npm run start-prod\"",
