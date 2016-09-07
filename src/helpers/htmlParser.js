@@ -4,8 +4,9 @@ import entities from 'entities'
 import HtmlToReact from 'html-to-react'
 import voidElements from 'void-elements'
 
-const parser = new HtmlToReact.Parser(React)
+import config from '../config'
 
+const parser = new HtmlToReact.Parser(React)
 const processNodeDefinitions = new HtmlToReact.ProcessNodeDefinitions(React)
 
 /**
@@ -67,7 +68,10 @@ export default function parse (html) {
 
       if (
         node.name == 'a' &&
-        attrs.href.indexOf('mailto') === -1
+        // Ignore `mailto:` links
+        attrs.href.indexOf('mailto') === -1 &&
+        // Ignore any href that is not pointing to our WP instance
+        attrs.href.indexOf(config.wordpress) === 0
       ) {
         attrs.href = ''
         return <Link to={node.attribs.href} {...attrs}>{children}</Link>
