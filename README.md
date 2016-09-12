@@ -53,6 +53,7 @@ We aim to release an Ansible script which will do all of this for you, but for n
 
 As a developer:
 
+- `npm run build`
 - `npm run dev`
 
 By default the web server is at localhost:3000
