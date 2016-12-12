@@ -20,14 +20,12 @@ export default class Root extends Component {
 
     return (
       <Provider store={store}>
-        <div>
           {type === 'server'
             ? <RouterContext {...renderProps} />
             : <Router history={history} routes={routes} />}
-          {type === 'client' && !window.devToolsExtension
-            ? <DevTools />
-            : null}
-        </div>
+          {/*{type === 'client' && !window.devToolsExtension*/}
+            {/*? <DevTools />*/}
+            {/*: null}*/}
       </Provider>
     )
   }
