@@ -39,7 +39,6 @@ if (__DEVELOPMENT__ && !process.env.DEBUG) {
 }
 
 var tool = new WebpackIsomorphicTools(iso)
-  .development(__DEVELOPMENT__)
   .server(rootDir, function () {
     require('../src/server')
   })
