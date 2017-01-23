@@ -4,8 +4,8 @@
 
 module.exports = {
   host: process.env.HOST || 'localhost',
-  wordpress: process.env.WORDPRESS || 'http://localhost/wordpress',
-  wpapi: process.env.WORDPRESS_API || 'http://localhost/wordpress/wp-json',
+  wordpress: process.env.WORDPRESS || 'http://story-tiles.dev',
+  wpapi: process.env.WORDPRESS_API || 'http://story-tiles.dev/wp-json',
   port: process.env.PORT || 3000,
   app: {
     title: 'Kasia Boilerplate',

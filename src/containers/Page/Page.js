@@ -28,7 +28,7 @@ class Page extends Component {
         <div>
           <Helmet title={page.title} />
           <h2>{page.title}</h2>
-          {parse(page.content)}
+          {parse(page.content.rendered)}
         </div>
       )
     }

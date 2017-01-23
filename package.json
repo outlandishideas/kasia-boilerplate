@@ -37,7 +37,7 @@
       "env": {
         "NODE_PATH": "./src",
         "NODE_ENV": "development",
-        "PORT": 3000
+        "PORT": 5000
       }
     },
     "watch-client": {

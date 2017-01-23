@@ -12,7 +12,12 @@ export const WP = new _WP({ endpoint: config.wpapi })
 
 const { kasiaSagas, kasiaReducer } = Kasia({
   WP,
-  plugins: [KasiaWpMenusPlugin]
+  plugins: [KasiaWpMenusPlugin],
+  contentTypes: [{
+      name: 'Reports',
+      plural: 'reports',
+      slug: 'reports'
+  }]
 })
 
 export {
